@@ -3,7 +3,6 @@ package main
 import (
 	"go-graphics/pkg/gfx"
 	"io/ioutil"
-	"time"
 
 	"github.com/go-gl/gl/v3.3-core/gl"
 	"github.com/veandco/go-sdl2/sdl"
@@ -11,7 +10,7 @@ import (
 
 var (
     verts = []float32 {-0.5, -0.5, 0.5, -0.5, 0.0, 0.5}
-    colors = []float32 {0.4,0.4,0.4,1.0,0.4,0.4,0.4,1.0,0.4,0.4,0.4,1.0}
+    colors = []float32 {1.0,0.0,0.0,1.0,0.0,1.0,0.0,1.0,0.0,0.0,1.0,1.0}
 )
 
 func main() {
@@ -36,7 +35,7 @@ func main() {
 	vertSrc, err := ioutil.ReadFile("shaders/triangle2d.vert")
 	panicIfErr(err)
 
-	fragSrc, err := ioutil.ReadFile("shaders/triangle2d.vert")
+	fragSrc, err := ioutil.ReadFile("shaders/triangle2d.frag")
 	panicIfErr(err)
 
 	vs, err := gfx.CreateShader(gl.VERTEX_SHADER, string(vertSrc))
@@ -49,18 +48,24 @@ func main() {
 
     vBuf := gfx.CreateBuffer(verts)
     cBuf := gfx.CreateBuffer(colors)
-    vao := gfx.CreateVertexArray(vBuf, cBuf)
+    gfx.CreateVertexArray(vBuf, cBuf)
 
     gl.UseProgram(prog)
 
-    for {
-        draw(vao)
+    shouldRun := true
+    for shouldRun {
+        for event := sdl.PollEvent(); event != nil; event = sdl.PollEvent() {
+            switch event.(type) {
+            case *sdl.QuitEvent:
+                shouldRun = false
+            }
+        }
+        draw()
         window.GLSwap()
-        <-time.After(300 * time.Millisecond)
     }
 }
 
-func draw(vao uint32) {
+func draw() {
     gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
     gl.DrawArrays(gl.TRIANGLES, 0, 3)
 }

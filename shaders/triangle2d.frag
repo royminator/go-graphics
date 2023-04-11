@@ -1,6 +1,7 @@
 #version 150
-out vec4 color_fsout;
+in vec4 color_vsout;
+out vec4 FragColor;
 
 void main() {
-    color_fsout = vec4(1.0, 0.0, 0.0, 1.0);
+    FragColor = color_vsout;
 }

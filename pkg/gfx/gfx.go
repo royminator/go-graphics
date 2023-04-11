@@ -55,11 +55,9 @@ func CreateVertexArray(vBuf uint32, cBuf uint32) uint32 {
     gl.BindBuffer(gl.ARRAY_BUFFER, vBuf)
     gl.VertexAttribPointer(0, 2, gl.FLOAT, false, 0, nil)
 
-    /*
     gl.EnableVertexAttribArray(1)
     gl.BindBuffer(gl.ARRAY_BUFFER, cBuf)
     gl.VertexAttribPointer(1, 4, gl.FLOAT, false, 0, nil)
-    */
 
     return vao
 }
