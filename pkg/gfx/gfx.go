@@ -6,7 +6,6 @@ import (
 )
 
 func CreateShader(shaderType uint32, source string) (uint32, error) {
-
     handle := gl.CreateShader(shaderType)
     glSrcs, freeFn := gl.Strs(source, "\x00")
     defer freeFn()
@@ -21,7 +20,6 @@ func CreateShader(shaderType uint32, source string) (uint32, error) {
 }
 
 func CreateShaderProgram(shaders []uint32) uint32 {
-
     prog := gl.CreateProgram()
 
     for _, shader := range shaders {
@@ -37,7 +35,6 @@ func CreateShaderProgram(shaders []uint32) uint32 {
 }
 
 func CreateBuffer(data []float32) uint32 {
-
 	var buf uint32
 	gl.GenBuffers(1, &buf)
 	gl.BindBuffer(gl.ARRAY_BUFFER, buf)
@@ -47,7 +44,6 @@ func CreateBuffer(data []float32) uint32 {
 }
 
 func CreateVertexArray(vBuf uint32, cBuf uint32) uint32 {
-
     var vao uint32
     gl.GenVertexArrays(1, &vao)
     gl.BindVertexArray(vao)
