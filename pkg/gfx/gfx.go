@@ -3,6 +3,7 @@ package gfx
 import (
 	"fmt"
 	"github.com/go-gl/gl/v3.3-core/gl"
+	mgl "github.com/go-gl/mathgl/mgl32"
 )
 
 func CreateShader(shaderType uint32, source string) (uint32, error) {
@@ -34,6 +35,16 @@ func CreateShaderProgram(shaders []uint32) uint32 {
     return prog
 }
 
+func CreateVertexBuffer(data []mgl.Vec3) uint32 {
+	var buf uint32
+    ptr := gl.Ptr(&data[0][0])
+	gl.GenBuffers(1, &buf)
+	gl.BindBuffer(gl.ARRAY_BUFFER, buf)
+	gl.BufferData(gl.ARRAY_BUFFER, len(data)*4*3, ptr, gl.STATIC_DRAW)
+
+    return buf
+}
+
 func CreateBuffer(data []float32) uint32 {
 	var buf uint32
 	gl.GenBuffers(1, &buf)
@@ -49,7 +60,7 @@ func CreateVertexArray(vBuf uint32, cBuf uint32) uint32 {
     gl.BindVertexArray(vao)
     gl.EnableVertexAttribArray(0)
     gl.BindBuffer(gl.ARRAY_BUFFER, vBuf)
-    gl.VertexAttribPointer(0, 2, gl.FLOAT, false, 0, nil)
+    gl.VertexAttribPointer(0, 3, gl.FLOAT, false, 0, nil)
 
     gl.EnableVertexAttribArray(1)
     gl.BindBuffer(gl.ARRAY_BUFFER, cBuf)
