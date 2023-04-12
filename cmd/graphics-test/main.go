@@ -15,7 +15,11 @@ var (
 		{0.5, -0.5, 0},
 		{0.0, 0.5, 0},
 	}
-	colors = []float32{1.0, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 0.0, 1.0, 1.0}
+	colors = []mgl.Vec4{
+        {1.0, 0.0, 0.0, 1.0},
+        {0.0, 1.0, 0.0, 1.0},
+        {0.0, 0.0, 1.0, 1.0},
+    }
 )
 
 func main() {
@@ -52,7 +56,7 @@ func main() {
 	prog := gfx.CreateShaderProgram([]uint32{vs, fs})
 
 	vBuf := gfx.CreateVertexBuffer(verts)
-	cBuf := gfx.CreateBuffer(colors)
+	cBuf := gfx.CreateColorBuffer(colors)
 	gfx.CreateVertexArray(vBuf, cBuf)
 
 	gl.UseProgram(prog)
