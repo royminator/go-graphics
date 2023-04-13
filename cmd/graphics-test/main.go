@@ -16,10 +16,10 @@ var (
 		{0.0, 0.5, 0},
 	}
 	colors = []mgl.Vec4{
-        {1.0, 0.0, 0.0, 1.0},
-        {0.0, 1.0, 0.0, 1.0},
-        {0.0, 0.0, 1.0, 1.0},
-    }
+		{1.0, 0.0, 0.0, 1.0},
+		{0.0, 1.0, 0.0, 1.0},
+		{0.0, 0.0, 1.0, 1.0},
+	}
 )
 
 func main() {
@@ -55,8 +55,8 @@ func main() {
 
 	prog := gfx.CreateShaderProgram([]uint32{vs, fs})
 
-    vdata := gfx.FromVec3(verts)
-    cdata := gfx.FromVec4(colors)
+	vdata := gfx.FromVec3(verts)
+	cdata := gfx.FromVec4(colors)
 	vBuf := gfx.CreateVertexBufferG(vdata)
 	cBuf := gfx.CreateVertexBufferG(cdata)
 	gfx.CreateVertexArray(vBuf, cBuf)
