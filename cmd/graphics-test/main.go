@@ -55,8 +55,10 @@ func main() {
 
 	prog := gfx.CreateShaderProgram([]uint32{vs, fs})
 
-	vBuf := gfx.CreateVertexBuffer(verts)
-	cBuf := gfx.CreateColorBuffer(colors)
+    vdata := gfx.FromVec3(verts)
+    cdata := gfx.FromVec4(colors)
+	vBuf := gfx.CreateVertexBufferG(vdata)
+	cBuf := gfx.CreateVertexBufferG(cdata)
 	gfx.CreateVertexArray(vBuf, cBuf)
 
 	gl.UseProgram(prog)

@@ -6,6 +6,19 @@ import (
 	mgl "github.com/go-gl/mathgl/mgl32"
 )
 
+type VertexData struct {
+    Data interface{}
+    NBytes int
+}
+
+func FromVec3(v []mgl.Vec3) VertexData {
+    return VertexData{Data: &v[0][0], NBytes: len(v)*3*4}
+}
+
+func FromVec4(v []mgl.Vec4) VertexData {
+    return VertexData{Data: &v[0][0], NBytes: len(v)*4*4}
+}
+
 func CreateShader(shaderType uint32, source string) (uint32, error) {
     handle := gl.CreateShader(shaderType)
     glSrcs, freeFn := gl.Strs(source, "\x00")
@@ -35,21 +48,11 @@ func CreateShaderProgram(shaders []uint32) uint32 {
     return prog
 }
 
-func CreateVertexBuffer(data []mgl.Vec3) uint32 {
-	var buf uint32
-    ptr := gl.Ptr(&data[0][0])
-	gl.GenBuffers(1, &buf)
-	gl.BindBuffer(gl.ARRAY_BUFFER, buf)
-	gl.BufferData(gl.ARRAY_BUFFER, len(data)*4*len(data[0]), ptr, gl.STATIC_DRAW)
-
-    return buf
-}
-
-func CreateColorBuffer(data []mgl.Vec4) uint32 {
+func CreateVertexBufferG(vdata VertexData) uint32 {
 	var buf uint32
 	gl.GenBuffers(1, &buf)
 	gl.BindBuffer(gl.ARRAY_BUFFER, buf)
-	gl.BufferData(gl.ARRAY_BUFFER, len(data)*4*len(data[0]), gl.Ptr(&data[0][0]), gl.STATIC_DRAW)
+	gl.BufferData(gl.ARRAY_BUFFER, vdata.NBytes, gl.Ptr(vdata.Data), gl.STATIC_DRAW)
 
     return buf
 }
