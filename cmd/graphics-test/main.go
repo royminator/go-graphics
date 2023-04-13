@@ -2,7 +2,6 @@ package main
 
 import (
 	"go-graphics/pkg/gfx"
-	"io/ioutil"
 
 	"github.com/go-gl/gl/v3.3-core/gl"
 	mgl "github.com/go-gl/mathgl/mgl32"
@@ -41,19 +40,10 @@ func main() {
 		panic(err)
 	}
 
-	vertSrc, err := ioutil.ReadFile("shaders/triangle2d.vert")
-	panicIfErr(err)
-
-	fragSrc, err := ioutil.ReadFile("shaders/triangle2d.frag")
-	panicIfErr(err)
-
-	vs, err := gfx.CreateShader(gl.VERTEX_SHADER, string(vertSrc))
-	panicIfErr(err)
-
-	fs, err := gfx.CreateShader(gl.FRAGMENT_SHADER, string(fragSrc))
-	panicIfErr(err)
-
-	prog := gfx.CreateShaderProgram([]uint32{vs, fs})
+	prog, err := gfx.LoadVertFragFromFile("shaders/", "triangle2d")
+	if err != nil {
+		panic(err)
+	}
 
 	vdata := gfx.FromVec3(verts)
 	cdata := gfx.FromVec4(colors)
@@ -61,11 +51,11 @@ func main() {
 	cBuf := gfx.CreateVertexBufferG(cdata)
 	gfx.CreateVertexArray(vBuf, cBuf)
 
-	gl.UseProgram(prog)
+	gl.UseProgram(prog.Handle)
 
 	// Uniform setup
 	mvp := mgl.Ident4()
-	mvpLoc := gl.GetUniformLocation(prog, gl.Str("mvp\x00"))
+	mvpLoc := gl.GetUniformLocation(prog.Handle, gl.Str("mvp\x00"))
 
 	// Input processing
 	shouldRun := true
