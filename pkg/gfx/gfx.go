@@ -3,21 +3,14 @@ package gfx
 import (
 	"fmt"
 	"github.com/go-gl/gl/v3.3-core/gl"
-	mgl "github.com/go-gl/mathgl/mgl32"
 )
 
-type VertexData struct {
-    Data interface{}
-    NBytes int
-}
 
-func FromVec3(v []mgl.Vec3) VertexData {
-    return VertexData{Data: &v[0][0], NBytes: len(v)*3*4}
-}
-
-func FromVec4(v []mgl.Vec4) VertexData {
-    return VertexData{Data: &v[0][0], NBytes: len(v)*4*4}
-}
+type (
+    Shader struct {
+        Handle uint32
+    }
+)
 
 func CreateShader(shaderType uint32, source string) (uint32, error) {
     handle := gl.CreateShader(shaderType)
@@ -71,3 +64,4 @@ func CreateVertexArray(vBuf uint32, cBuf uint32) uint32 {
 
     return vao
 }
+
