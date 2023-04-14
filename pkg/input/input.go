@@ -47,11 +47,9 @@ const (
 )
 
 func ReadAndExecInputs(state *AppState) {
-	for {
-		inputState := readInputs()
-		state.InputContext.inputStateToDomainInputs(inputState)
-		// executeInputs(domainInputs, state)
-	}
+	inputState := readInputs()
+	state.InputContext.inputStateToDomainInputs(inputState)
+	// executeInputs(domainInputs, state)
 }
 
 func readInputs() InputState {
