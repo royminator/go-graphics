@@ -6,6 +6,7 @@ import (
 	"github.com/go-gl/gl/v3.3-core/gl"
 	mgl "github.com/go-gl/mathgl/mgl32"
 	"github.com/veandco/go-sdl2/sdl"
+    "go-graphics/pkg/input"
 )
 
 var (
@@ -19,6 +20,16 @@ var (
 		{0.0, 1.0, 0.0, 1.0},
 		{0.0, 0.0, 1.0, 1.0},
 	}
+    inputCtx = input.Context{
+        Actions: map[input.Action][]input.ButtonState{
+            input.MOVE_NORTH: {
+                {Id: input.W, Mode: input.PRESSED},
+            },
+        },
+    }
+    appState = input.AppState{
+        InputContext: inputCtx,
+    }
 )
 
 func main() {
@@ -60,27 +71,7 @@ func main() {
 	// Input processing
 	shouldRun := true
 	for shouldRun {
-		for event := sdl.PollEvent(); event != nil; event = sdl.PollEvent() {
-			switch t := event.(type) {
-			case *sdl.QuitEvent:
-				shouldRun = false
-				break
-			case *sdl.KeyboardEvent:
-				if t.Type == sdl.KEYDOWN {
-					switch t.Keysym.Sym {
-					case sdl.GetKeyFromName("w"):
-						mvp = mgl.Translate3D(mvp.At(0, 3), 0.01+mvp.At(1, 3), mvp.At(2, 3))
-					case sdl.GetKeyFromName("a"):
-						mvp = mgl.Translate3D(mvp.At(0, 3)-0.01, mvp.At(1, 3), mvp.At(2, 3))
-					case sdl.GetKeyFromName("r"):
-						mvp = mgl.Translate3D(mvp.At(0, 3), mvp.At(1, 3)-0.01, mvp.At(2, 3))
-					case sdl.GetKeyFromName("s"):
-						mvp = mgl.Translate3D(0.01+mvp.At(0, 3), mvp.At(1, 3), mvp.At(2, 3))
-					}
-				}
-				break
-			}
-		}
+        input.ReadAndExecInputs(&appState)
 		draw(mvpLoc, mvp)
 		window.GLSwap()
 	}
