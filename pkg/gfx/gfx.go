@@ -8,11 +8,9 @@ import (
 	"github.com/go-gl/gl/v3.3-core/gl"
 )
 
-type (
-	Shader struct {
-		Handle uint32
-	}
-)
+type Shader struct {
+	Handle uint32
+}
 
 func CompileShader(shaderType uint32, source string) (uint32, error) {
 	handle := gl.CreateShader(shaderType)
@@ -21,14 +19,9 @@ func CompileShader(shaderType uint32, source string) (uint32, error) {
 	gl.ShaderSource(handle, 1, glSrcs, nil)
 	gl.CompileShader(handle)
 
-	var success int32
-	gl.GetShaderiv(handle, gl.COMPILE_STATUS, &success)
-	if success == gl.FALSE {
-		var logLen int32
-		gl.GetShaderiv(handle, gl.INFO_LOG_LENGTH, &logLen)
-		log := gl.Str(strings.Repeat("\x00", int(logLen)))
-		gl.GetShaderInfoLog(handle, logLen, nil, log)
-		return 0, fmt.Errorf("%s: %s", "", gl.GoStr(log))
+	err := checkError(handle, gl.COMPILE_STATUS, gl.GetShaderiv, gl.GetShaderInfoLog, "failed to like shader")
+	if err != nil {
+		return 0, err
 	}
 
 	return handle, nil
@@ -41,17 +34,31 @@ func CreateShaderProgram(shaders []uint32) (uint32, error) {
 	}
 	gl.LinkProgram(prog)
 
-	var success int32
-	gl.GetProgramiv(prog, gl.LINK_STATUS, &success)
-	if success == gl.FALSE {
-		var logLen int32
-		gl.GetProgramiv(prog, gl.INFO_LOG_LENGTH, &logLen)
-		log := gl.Str(strings.Repeat("\x00", int(logLen)))
-		gl.GetProgramInfoLog(prog, logLen, nil, log)
-		return 0, fmt.Errorf("%s: %s", "", gl.GoStr(log))
+	err := checkError(prog, gl.LINK_STATUS, gl.GetProgramiv, gl.GetProgramInfoLog, "failed to like program")
+	if err != nil {
+		return 0, err
 	}
 
 	return prog, nil
+}
+
+type getGlStatus func(uint32, uint32, *int32)
+type getGlInfoLog func(uint32, int32, *int32, *uint8)
+
+func checkError(handle uint32, glProp uint32, getStatusFn getGlStatus, getLogFn getGlInfoLog, msg string) error {
+	var success int32
+	getStatusFn(handle, glProp, &success)
+	if success == gl.FALSE {
+		var logLen int32
+		getStatusFn(handle, gl.INFO_LOG_LENGTH, &logLen)
+
+		log := gl.Str(strings.Repeat("\x00", int(logLen)))
+		getLogFn(handle, logLen, nil, log)
+
+		return fmt.Errorf("%s: %s", msg, gl.GoStr(log))
+	}
+
+	return nil
 }
 
 func CreateVertexBufferG(vdata VertexData) uint32 {
