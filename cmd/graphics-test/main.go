@@ -3,10 +3,11 @@ package main
 import (
 	"go-graphics/pkg/gfx"
 
+	"go-graphics/pkg/input"
+
 	"github.com/go-gl/gl/v3.3-core/gl"
 	mgl "github.com/go-gl/mathgl/mgl32"
 	"github.com/veandco/go-sdl2/sdl"
-    "go-graphics/pkg/input"
 )
 
 var (
@@ -20,17 +21,11 @@ var (
 		{0.0, 1.0, 0.0, 1.0},
 		{0.0, 0.0, 1.0, 1.0},
 	}
-    inputCtx = input.Context{
-        Actions: map[input.Action][]input.ButtonState{
-            input.MOVE_NORTH: {
-                {Id: input.W, Mode: input.PRESSED},
-            },
-        },
-    }
-    appState = input.AppState{
-        InputContext: inputCtx,
-    }
 )
+
+type Camera struct {
+	Pose mgl.Mat4
+}
 
 func main() {
 	if err := sdl.Init(sdl.INIT_EVERYTHING); err != nil {
@@ -65,20 +60,22 @@ func main() {
 	gl.UseProgram(prog.Handle)
 
 	// Uniform setup
-	mvp := mgl.Ident4()
 	mvpLoc := gl.GetUniformLocation(prog.Handle, gl.Str("mvp\x00"))
+	camera := Camera{mgl.Ident4()}
+	inputMapper := input.MakeMapper()
+	inputMapper.RegisterEntity(input.MOVE_NORTH, &camera)
 
 	// Input processing
 	shouldRun := true
 	for shouldRun {
-        input.ReadAndExecInputs(&appState)
-		draw(mvpLoc, mvp)
+		input.ReadAndExecInputs(inputMapper)
+		draw(mvpLoc, camera)
 		window.GLSwap()
 	}
 }
 
-func draw(mvpLoc int32, mvp mgl.Mat4) {
-	gl.UniformMatrix4fv(mvpLoc, 1, false, &mvp[0])
+func draw(mvpLoc int32, camera Camera) {
+	gl.UniformMatrix4fv(mvpLoc, 1, false, &camera.Pose[0])
 	gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
 	gl.DrawArrays(gl.TRIANGLES, 0, 3)
 }
@@ -88,4 +85,16 @@ func panicIfErr(err error) {
 	if err != nil {
 		panic(err)
 	}
+}
+
+func (c *Camera) ExecInput(action input.Action) {
+	switch action {
+	case input.MOVE_NORTH:
+		c.Pose = c.Pose.Mul4(mgl.Translate3D(0.0, 0.01, 0.0))
+		break
+	}
+}
+
+func (c *Camera) Id() int {
+	return 1
 }

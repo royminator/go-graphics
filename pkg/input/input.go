@@ -5,12 +5,14 @@ import (
 )
 
 type (
-	AppState struct {
-		InputContext Context
+	InputMapper struct {
+		activeCtx InputContext
+		entities  map[Action][]ExecsInput
+		contexts  []InputContext
 	}
 
 	InputState struct {
-		TriggeredButtons []ButtonState
+		triggeredButtons []ButtonState
 	}
 
 	ButtonState struct {
@@ -18,14 +20,18 @@ type (
 		Mode ButtonMode
 	}
 
-	ButtonId   byte
-	ButtonMode int
-
-	Context struct {
-		Actions map[Action][]ButtonState
+	InputContext struct {
+		actions map[Action][]ButtonState
 	}
 
-	Action int
+	ExecsInput interface {
+		Id() int
+		ExecInput(Action)
+	}
+
+	Action     int
+	ButtonId   byte
+	ButtonMode int
 )
 
 const (
@@ -46,10 +52,9 @@ const (
 	QUIT
 )
 
-func ReadAndExecInputs(state *AppState) {
+func ReadAndExecInputs(mapper InputMapper) {
 	inputState := readInputs()
-	state.InputContext.inputStateToDomainInputs(inputState)
-	// executeInputs(domainInputs, state)
+	mapper.mapAndExec(inputState)
 }
 
 func readInputs() InputState {
@@ -69,7 +74,7 @@ func (state *InputState) recordSDLEvent(event sdl.Event) {
 
 func (state *InputState) recordKeyboardEvent(event *sdl.KeyboardEvent) {
 	if btn, found := sdlEventToButtonState(event); found {
-		state.TriggeredButtons = append(state.TriggeredButtons, btn)
+		state.triggeredButtons = append(state.triggeredButtons, btn)
 	}
 }
 
@@ -110,10 +115,15 @@ func sdlKeyStateToButtonMode(state uint8) ButtonMode {
 	}
 }
 
-func (ctx Context) inputStateToDomainInputs(state InputState) []Action {
+func (m *InputMapper) mapAndExec(state InputState) {
+	actions := m.activeCtx.mapToDomainInputs(state)
+	m.execInputs(actions)
+}
+
+func (ctx InputContext) mapToDomainInputs(state InputState) []Action {
 	var triggeredActions []Action
-	for action, btns := range ctx.Actions {
-		if isActionTriggered(btns, state.TriggeredButtons) {
+	for action, btns := range ctx.actions {
+		if isActionTriggered(btns, state.triggeredButtons) {
 			triggeredActions = append(triggeredActions, action)
 		}
 	}
@@ -121,17 +131,12 @@ func (ctx Context) inputStateToDomainInputs(state InputState) []Action {
 }
 
 func isActionTriggered(btns, triggered []ButtonState) bool {
-	var count int = 0
 	for _, btn := range btns {
-		if containsBtn(btn, triggered) {
-			count++
+		if !containsBtn(btn, triggered) {
+			return false
 		}
 	}
-
-	if count == len(btns) {
-		return true
-	}
-	return false
+	return true
 }
 
 func containsBtn(btn ButtonState, btns []ButtonState) bool {
@@ -140,6 +145,57 @@ func containsBtn(btn ButtonState, btns []ButtonState) bool {
 			return true
 		}
 	}
-
 	return false
+}
+
+func (m InputMapper) execInputs(actions []Action) {
+	for _, action := range actions {
+		for _, entity := range m.entities[action] {
+			entity.ExecInput(action)
+		}
+	}
+}
+
+func MakeMapper() InputMapper {
+	ctx := InputContext{
+		actions: map[Action][]ButtonState{
+			MOVE_NORTH: {{W, PRESSED}},
+		},
+	}
+
+	return InputMapper{
+		activeCtx: ctx,
+		entities:  map[Action][]ExecsInput{},
+		contexts:  []InputContext{ctx},
+	}
+}
+
+func (m *InputMapper) RegisterEntity(action Action, entity ExecsInput) {
+	entities, found := m.entities[action]
+	if found {
+		entities = append(entities, entity)
+		m.entities[action] = entities
+		return
+	}
+	m.entities[action] = []ExecsInput{entity}
+}
+
+func (m *InputMapper) RemoveEntity(id int) {
+	for action, entities := range m.entities {
+		removed := removeEntityWithId(entities, id)
+		m.entities[action] = removed
+	}
+}
+
+func removeEntityWithId(entities []ExecsInput, id int) []ExecsInput {
+	for i, entity := range entities {
+		if entity.Id() == id {
+			return removeEntityIndex(entities, i)
+		}
+	}
+	return entities
+}
+
+func removeEntityIndex(entities []ExecsInput, i int) []ExecsInput {
+	return append(entities[:i], entities[i+1:]...)
 }
