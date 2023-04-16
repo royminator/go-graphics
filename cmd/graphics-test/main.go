@@ -57,11 +57,9 @@ func main() {
 	cBuf := gfx.CreateVertexBufferG(cdata)
 	gfx.CreateVertexArray(vBuf, cBuf)
 
-	gl.UseProgram(prog.Handle)
+	camera := Camera{mgl.Ident4()}
 
 	// Uniform setup
-	mvpLoc := gl.GetUniformLocation(prog.Handle, gl.Str("mvp\x00"))
-	camera := Camera{mgl.Ident4()}
 	inputMapper := input.MakeMapper()
 	inputMapper.RegisterEntity(input.MOVE_NORTH, &camera)
 
@@ -69,13 +67,14 @@ func main() {
 	shouldRun := true
 	for shouldRun {
 		input.ReadAndExecInputs(inputMapper)
-		draw(mvpLoc, camera)
+		draw(prog, &camera)
 		window.GLSwap()
 	}
 }
 
-func draw(mvpLoc int32, camera Camera) {
-	gl.UniformMatrix4fv(mvpLoc, 1, false, &camera.Pose[0])
+func draw(shader gfx.Shader, camera *Camera) {
+	shader.Bind()
+	shader.SetUniform("mvp", gfx.Uniform4f{Name: "mvp", Val: camera.Pose})
 	gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
 	gl.DrawArrays(gl.TRIANGLES, 0, 3)
 }
