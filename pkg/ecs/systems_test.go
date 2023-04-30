@@ -70,13 +70,89 @@ func TestScene_NewScene_ShouldCreateEntities(t *testing.T) {
     }
 }
 
-func TestScene_AddEntity_ShouldBe0(t *testing.T) {
+func TestScene_NewEntity_ShouldBe0(t *testing.T) {
     maxEntities := uint(3)
     scene := NewScene(maxEntities)
     entity := scene.NewEntity()
     actual := EntityID{0, 1}
     if entity != actual {
         t.Errorf("expected allocated entity to be %v, was %v", entity, actual)
+    }
+}
+
+func TestScene_NewEntity_WhenEntitiesCapacityReached_ShouldAppend(t *testing.T) {
+    // Arrange
+    maxEntities := uint(3)
+    scene := NewScene(maxEntities)
+
+    // Act
+    for i := 0; i < int(maxEntities); i++ {
+        scene.NewEntity()
+    }
+
+    scene.NewEntity()
+
+    // Assert
+    nEnts := maxEntities+1
+    lenEnts := scene.entities.nEntities
+    lenMat := len(scene.entities.matrix)
+    lenAllocEnts := len(scene.entities.allocator.entities)
+    lenAllocFree := len(scene.entities.allocator.free)
+    lenRenderComps := len(scene.components.renderComps)
+
+    if lenEnts != nEnts {
+        t.Errorf("expected n entities to be %d", nEnts)
+    }
+    if uint(lenMat) != nEnts {
+        t.Errorf("expected n entities in component matrix to be %d", nEnts)
+    }
+    if uint(lenAllocEnts) != nEnts {
+        t.Errorf("expected n allocated entities to be %d", nEnts)
+    }
+    if uint(lenAllocFree) != 0 {
+        t.Error("expected n free indices to be 0")
+    }
+    if uint(lenRenderComps) != nEnts {
+        t.Errorf("expected n render components to be %d", nEnts)
+    }
+}
+
+
+func TestScene_NewEntity_WhenEntitiesCapacityReachedThenDeallocate_NumberOfEntitiesShouldEqualCapacity(t *testing.T) {
+    // Arrange
+    maxEntities := uint(3)
+    scene := NewScene(maxEntities)
+
+    // Act
+    for i := 0; i < int(maxEntities); i++ {
+        scene.NewEntity()
+    }
+
+    entity := scene.NewEntity()
+    scene.DeleteEntity(entity)
+
+    // Assert
+    expEnts := maxEntities+1
+    lenEnts := scene.entities.nEntities
+    lenMat := len(scene.entities.matrix)
+    lenAllocEnts := len(scene.entities.allocator.entities)
+    lenAllocFree := len(scene.entities.allocator.free)
+    lenRenderComps := len(scene.components.renderComps)
+
+    if lenEnts != expEnts {
+        t.Errorf("expected n entities to be %d, was %d", expEnts, lenEnts)
+    }
+    if uint(lenMat) != expEnts {
+        t.Errorf("expected n entities in component matrix to be %d, was %d", expEnts, lenMat)
+    }
+    if uint(lenAllocEnts) != expEnts {
+        t.Errorf("expected n allocated entities to be %d, was %d", expEnts, lenAllocEnts)
+    }
+    if uint(lenAllocFree) != 1 {
+        t.Errorf("expected n free indices to be 1, was %d", lenAllocFree)
+    }
+    if uint(lenRenderComps) != expEnts {
+        t.Errorf("expected n render components to be %d, was %d", expEnts, lenRenderComps)
     }
 }
 
@@ -127,3 +203,4 @@ func TestEntityIDAllocator_Free_ShouldIncreaseVersionAndMoveToFree(t *testing.T)
         t.Errorf("expected entity %v to be inactive, was %v", entity, alloc.entities[entity.index])
     }
 }
+

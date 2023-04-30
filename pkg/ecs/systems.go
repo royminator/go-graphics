@@ -157,20 +157,43 @@ func newEntityAllocator(n uint) EntityIDAllocator {
 }
 
 func (scene *Scene) NewEntity() EntityID {
+	if scene.numFreeEntities() <= 0 {
+		return scene.appendEntity()
+	}
 	return scene.entities.allocator.allocate()
 }
 
+func (scene *Scene) appendEntity() EntityID {
+	entities := &scene.entities
+	alloc := &entities.allocator
+	entities.nEntities++
+	entities.matrix = append(entities.matrix, ComponentMask(0))
+	scene.components.append()
+	return alloc.append()
+}
+
+func (scene *Scene) numFreeEntities() uint {
+	return uint(len(scene.entities.allocator.free))
+}
+
+func (scene *Scene) DeleteEntity(entity EntityID) {
+	entities := &scene.entities
+	alloc := &entities.allocator
+	alloc.deallocate(entity)
+}
+
 func (alloc *EntityIDAllocator) allocate() EntityID {
-	if len(alloc.free) > 0 {
-		var entityIndex uint32
-		entityIndex, alloc.free = alloc.free[0], alloc.free[1:]
-		alloc.entities[entityIndex].version++
-		alloc.entities[entityIndex].isActive = true
-		return EntityID{
-			index:   entityIndex,
-			version: alloc.entities[entityIndex].version,
-		}
+	var entityIndex uint32
+	entityIndex, alloc.free = alloc.free[0], alloc.free[1:]
+	alloc.entities[entityIndex].version++
+	alloc.entities[entityIndex].isActive = true
+	return EntityID{
+		index:   entityIndex,
+		version: alloc.entities[entityIndex].version,
 	}
+}
+
+func (alloc *EntityIDAllocator) append() EntityID {
 	entry := AllocatorEntry{
 		isActive: true,
 		version:  0,
@@ -202,4 +225,11 @@ func contains[T comparable](xs []T, x T) bool {
 		}
 	}
 	return false
+}
+
+func (comps *ComponentRepo) append() {
+	comps.meshComps = append(comps.meshComps, MeshComponent{})
+	comps.tfComps = append(comps.tfComps, TransformComponent{})
+	comps.renderComps = append(comps.renderComps, RenderComponent{})
+	comps.velComps = append(comps.velComps, VelocityComponent{})
 }
