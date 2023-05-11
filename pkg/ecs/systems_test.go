@@ -2,6 +2,7 @@ package ecs
 
 import (
 	"testing"
+	mgl "github.com/go-gl/mathgl/mgl32"
 )
 
 func TestMakeComponentMask(t *testing.T) {
@@ -153,6 +154,22 @@ func TestScene_NewEntity_WhenEntitiesCapacityReachedThenDeallocate_NumberOfEntit
     }
     if uint(lenRenderComps) != expEnts {
         t.Errorf("expected n render components to be %d, was %d", expEnts, lenRenderComps)
+    }
+}
+
+func TestScene_AddComponent(t *testing.T) {
+    // Arrange
+    comp := TransformComponent{mgl.Vec3{1, 2, 3}, mgl.QuatIdent()}
+    scene := NewScene(200)
+    entity := scene.NewEntity()
+
+    // Act
+    scene.AddTfComp(entity, comp)
+
+    // Assert
+    expected := scene.components.tfComps[entity.index]
+    if comp != expected {
+        t.Errorf("expected component to be %v, was %v", comp, expected)
     }
 }
 
