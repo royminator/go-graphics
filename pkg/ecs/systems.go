@@ -1,6 +1,8 @@
 package ecs
 
-import ()
+import (
+	mgl "github.com/go-gl/mathgl/mgl32"
+)
 
 type (
 	EntityID struct {
@@ -27,6 +29,7 @@ type (
 		renderComps []RenderComponent
 		tfComps     []TransformComponent
 		velComps    []VelocityComponent
+		eventComps  []EventListenerComponent
 	}
 
 	EntityComponents struct {
@@ -48,9 +51,14 @@ type (
 	}
 
 	TransformComponent struct {
+		Pos mgl.Vec3
+		Rot mgl.Quat
 	}
 
 	VelocityComponent struct {
+	}
+
+	EventListenerComponent struct {
 	}
 
 	System interface {
@@ -66,11 +74,12 @@ type (
 const (
 	MAX_COMPONENTS uint = 32
 
-	// If exceeds 32 different components, change the type of ComponentMask
+	// If exceeds 32-1 different components, change the type of ComponentMask
 	TF_COMPID ComponentID = iota + 1
 	VELOCITY_COMPID
 	RENDER_COMPID
 	MESH_COMPID
+	EVENTLISTENER_COMPID
 )
 
 var (
@@ -232,4 +241,8 @@ func (comps *ComponentRepo) append() {
 	comps.tfComps = append(comps.tfComps, TransformComponent{})
 	comps.renderComps = append(comps.renderComps, RenderComponent{})
 	comps.velComps = append(comps.velComps, VelocityComponent{})
+}
+
+func (scene *Scene) AddTfComp(entity EntityID, comp TransformComponent) {
+	scene.components.tfComps[entity.index] = comp
 }
