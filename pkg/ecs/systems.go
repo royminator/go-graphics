@@ -40,8 +40,13 @@ type (
 	}
 
 	EntityIDAllocator struct {
+		IDallocator
 		entities []AllocatorEntry
-		free     []uint32
+	}
+
+	IDallocator struct {
+		ids  []uint32
+		free []uint32
 	}
 
 	MeshComponent struct {
@@ -156,8 +161,16 @@ func newComponentMatrix(nEnts uint, nComps uint) ComponentMatrix {
 
 func newEntityAllocator(n uint) EntityIDAllocator {
 	alloc := EntityIDAllocator{
-		entities: make([]AllocatorEntry, n),
-		free:     make([]uint32, n),
+		entities:    make([]AllocatorEntry, n),
+		IDallocator: newIDallocator(n),
+	}
+	return alloc
+}
+
+func newIDallocator(n uint) IDallocator {
+	alloc := IDallocator{
+		ids:  make([]uint32, n),
+		free: make([]uint32, n),
 	}
 	for i := range alloc.free {
 		alloc.free[i] = uint32(i)
@@ -192,14 +205,23 @@ func (scene *Scene) DeleteEntity(entity EntityID) {
 }
 
 func (alloc *EntityIDAllocator) allocate() EntityID {
-	var entityIndex uint32
-	entityIndex, alloc.free = alloc.free[0], alloc.free[1:]
+	entityIndex := alloc.IDallocator.allocate()
 	alloc.entities[entityIndex].version++
 	alloc.entities[entityIndex].isActive = true
 	return EntityID{
 		index:   entityIndex,
 		version: alloc.entities[entityIndex].version,
 	}
+}
+
+func (alloc *IDallocator) allocate() uint32 {
+	var i uint32
+	i, alloc.free = alloc.free[0], alloc.free[1:]
+	return i
+}
+
+func (alloc *IDallocator) deallocate(id uint32) {
+	alloc.free = append(alloc.free, id)
 }
 
 func (alloc *EntityIDAllocator) append() EntityID {
@@ -217,7 +239,7 @@ func (alloc *EntityIDAllocator) append() EntityID {
 func (alloc *EntityIDAllocator) deallocate(entity EntityID) {
 	if alloc.isActive(entity) {
 		alloc.entities[entity.index].isActive = false
-		alloc.free = append(alloc.free, entity.index)
+		alloc.IDallocator.deallocate(entity.index)
 	}
 }
 
