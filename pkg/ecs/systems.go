@@ -36,10 +36,10 @@ type (
 		nEntities   uint
 		nComponents uint
 		matrix      ComponentMatrix
-		allocator   EntityIDAllocator
+		allocator   EntityIDallocator
 	}
 
-	EntityIDAllocator struct {
+	EntityIDallocator struct {
 		IDallocator
 		entities []AllocatorEntry
 	}
@@ -159,8 +159,8 @@ func newComponentMatrix(nEnts uint, nComps uint) ComponentMatrix {
 	return mat
 }
 
-func newEntityAllocator(n uint) EntityIDAllocator {
-	alloc := EntityIDAllocator{
+func newEntityAllocator(n uint) EntityIDallocator {
+	alloc := EntityIDallocator{
 		entities:    make([]AllocatorEntry, n),
 		IDallocator: newIDallocator(n),
 	}
@@ -204,7 +204,7 @@ func (scene *Scene) DeleteEntity(entity EntityID) {
 	alloc.deallocate(entity)
 }
 
-func (alloc *EntityIDAllocator) allocate() EntityID {
+func (alloc *EntityIDallocator) allocate() EntityID {
 	entityIndex := alloc.IDallocator.allocate()
 	alloc.entities[entityIndex].version++
 	alloc.entities[entityIndex].isActive = true
@@ -224,7 +224,7 @@ func (alloc *IDallocator) deallocate(id uint32) {
 	alloc.free = append(alloc.free, id)
 }
 
-func (alloc *EntityIDAllocator) append() EntityID {
+func (alloc *EntityIDallocator) append() EntityID {
 	entry := AllocatorEntry{
 		isActive: true,
 		version:  0,
@@ -236,14 +236,14 @@ func (alloc *EntityIDAllocator) append() EntityID {
 	}
 }
 
-func (alloc *EntityIDAllocator) deallocate(entity EntityID) {
+func (alloc *EntityIDallocator) deallocate(entity EntityID) {
 	if alloc.isActive(entity) {
 		alloc.entities[entity.index].isActive = false
 		alloc.IDallocator.deallocate(entity.index)
 	}
 }
 
-func (alloc *EntityIDAllocator) isActive(entity EntityID) bool {
+func (alloc *EntityIDallocator) isActive(entity EntityID) bool {
 	return entity.index < uint32(len(alloc.entities)) &&
 		alloc.entities[entity.index].version == entity.version &&
 		alloc.entities[entity.index].isActive
