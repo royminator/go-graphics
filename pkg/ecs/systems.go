@@ -2,6 +2,7 @@ package ecs
 
 import (
 	mgl "github.com/go-gl/mathgl/mgl32"
+	"sort"
 )
 
 type (
@@ -15,9 +16,14 @@ type (
 		version  uint32
 	}
 
-	ComponentMask   uint32
-	ComponentID     ComponentMask
-	ComponentMatrix []ComponentMask
+	Archetype struct {
+		id         ArchetypeID
+		components []ComponentID
+	}
+
+	ArchetypeID     uint32
+	ComponentID     uint32
+	ArchetypeMatrix [][]uint32
 
 	Scene struct {
 		entities   EntityComponents
@@ -33,10 +39,15 @@ type (
 	}
 
 	EntityComponents struct {
-		nEntities   uint
-		nComponents uint
-		matrix      ComponentMatrix
-		allocator   EntityIDallocator
+		nEntities    uint
+		nComponents  uint
+		archEntities [][]uint32
+		allocator    EntityIDallocator
+	}
+
+	IDallocator struct {
+		ids  []uint32
+		free []uint32
 	}
 
 	EntityIDallocator struct {
@@ -44,9 +55,8 @@ type (
 		entities []AllocatorEntry
 	}
 
-	IDallocator struct {
-		ids  []uint32
-		free []uint32
+	ArchetypeIDallocator struct {
+		IDallocator
 	}
 
 	MeshComponent struct {
@@ -68,18 +78,18 @@ type (
 
 	System interface {
 		update(dt float32, entities []uint32, compRepo *ComponentRepo)
-		mask() ComponentMask
+		archetypeID() ArchetypeID
 	}
 
 	MovementSystem struct {
-		components ComponentMask
+		archetype ArchetypeID
 	}
 )
 
 const (
 	MAX_COMPONENTS uint = 32
+	MAX_ARCHETYPES uint = 300
 
-	// If exceeds 32-1 different components, change the type of ComponentMask
 	TF_COMPID ComponentID = iota + 1
 	VELOCITY_COMPID
 	RENDER_COMPID
@@ -88,14 +98,12 @@ const (
 )
 
 var (
-	SYSTEMS = []System{
-		MovementSystem{components: makeComponentMask(TF_COMPID, VELOCITY_COMPID)},
-	}
+	SYSTEMS = []System{}
 )
 
 func (scene *Scene) Update(dt float32) {
 	for _, system := range SYSTEMS {
-		entities := scene.filterEntities(system.mask())
+		entities := scene.filterEntities(system.archetypeID())
 		system.update(dt, entities, &scene.components)
 	}
 }
@@ -104,26 +112,12 @@ func (sys MovementSystem) update(dt float32, entities []uint32,
 	compRepo *ComponentRepo) {
 }
 
-func (sys MovementSystem) mask() ComponentMask {
-	return sys.components
+func (sys MovementSystem) archetypeID() ArchetypeID {
+	return sys.archetype
 }
 
-func (scene *Scene) filterEntities(mask ComponentMask) []uint32 {
-	var entities []uint32
-	for i, entityMask := range scene.entities.matrix {
-		if entityMask == mask {
-			entities = append(entities, uint32(i))
-		}
-	}
-	return entities
-}
-
-func makeComponentMask(comps ...ComponentID) ComponentMask {
-	var mask ComponentMask
-	for _, c := range comps {
-		mask |= ComponentMask(c)
-	}
-	return mask
+func (scene *Scene) filterEntities(arch ArchetypeID) []uint32 {
+	return scene.entities.archEntities[arch]
 }
 
 func NewScene(nEntities uint) *Scene {
@@ -135,10 +129,10 @@ func NewScene(nEntities uint) *Scene {
 
 func newEntities(nEntities uint) EntityComponents {
 	return EntityComponents{
-		nEntities:   nEntities,
-		nComponents: MAX_COMPONENTS,
-		matrix:      newComponentMatrix(nEntities, MAX_COMPONENTS),
-		allocator:   newEntityAllocator(nEntities),
+		nEntities:    nEntities,
+		nComponents:  MAX_COMPONENTS,
+		archEntities: make([][]uint32, MAX_ARCHETYPES),
+		allocator:    newEntityAllocator(nEntities),
 	}
 }
 
@@ -149,14 +143,6 @@ func newComponents(nEnts uint) ComponentRepo {
 		tfComps:     make([]TransformComponent, nEnts),
 		velComps:    make([]VelocityComponent, nEnts),
 	}
-}
-
-func newComponentMatrix(nEnts uint, nComps uint) ComponentMatrix {
-	var mat ComponentMatrix = make([]ComponentMask, nEnts)
-	for i := range mat {
-		mat[i] = ComponentMask(0)
-	}
-	return mat
 }
 
 func newEntityAllocator(n uint) EntityIDallocator {
@@ -189,7 +175,6 @@ func (scene *Scene) appendEntity() EntityID {
 	entities := &scene.entities
 	alloc := &entities.allocator
 	entities.nEntities++
-	entities.matrix = append(entities.matrix, ComponentMask(0))
 	scene.components.append()
 	return alloc.append()
 }
@@ -267,4 +252,12 @@ func (comps *ComponentRepo) append() {
 
 func (scene *Scene) AddTfComp(entity EntityID, comp TransformComponent) {
 	scene.components.tfComps[entity.index] = comp
+}
+
+func makeArchetype(alloc *IDallocator, comps []ComponentID) Archetype {
+	sort.Slice(comps, func(i, j int) bool { return comps[i] < comps[j] })
+	return Archetype{
+		id:         ArchetypeID(alloc.allocate()),
+		components: comps,
+	}
 }

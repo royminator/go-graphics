@@ -5,38 +5,14 @@ import (
 	"testing"
 )
 
-func TestMakeComponentMask(t *testing.T) {
-	componentA := ComponentID(3)  // binary: 0011
-	componentB := ComponentID(10) // binary: 1010
-	expected := ComponentMask(11) // binary: 1011
-	actual := makeComponentMask(componentA, componentB)
-
-	if expected != actual {
-		t.Errorf("expected: %d, actual: %d", expected, actual)
-	}
-}
-
-func TestNewComponentMatrix_ShouldAddEntitiesAndComponents(t *testing.T) {
+func TestEntityComponents_newEntityComponents_ShouldAddEntities(t *testing.T) {
 	// Arrange
-	nEntities, nComponents := uint(3), uint(16)
+	maxEntities := uint(3)
 
 	// Act
-	mat := newComponentMatrix(nEntities, nComponents)
+	entities := newEntities(maxEntities)
 
 	// Assert
-	rows := len(mat)
-	cols := mat[0]
-	if uint(rows) != nEntities {
-		t.Errorf("expected number of rows to be %d", nEntities)
-	}
-	if cols != 0 {
-		t.Errorf("expected component mask to be 0, was %d", cols)
-	}
-}
-
-func TestEntityComponents_newEntityComponents_ShouldAddEntities(t *testing.T) {
-	maxEntities := uint(3)
-	entities := newEntities(maxEntities)
 	if entities.nEntities != maxEntities {
 		t.Errorf("expected %d number of entities, was %d", maxEntities, entities.nEntities)
 	}
@@ -44,10 +20,6 @@ func TestEntityComponents_newEntityComponents_ShouldAddEntities(t *testing.T) {
 	lenAllocFree := len(entities.allocator.free)
 	if lenAllocEntities != lenAllocFree || uint(lenAllocEntities) != maxEntities {
 		t.Errorf("number of allocator entities was not equal to number of free indices, was no equal to %d", maxEntities)
-	}
-	lenCompMat := len(entities.matrix)
-	if uint(lenCompMat) != maxEntities {
-		t.Errorf("expected len comp matrix to be %d", maxEntities)
 	}
 }
 
@@ -64,10 +36,6 @@ func TestScene_NewScene_ShouldCreateEntities(t *testing.T) {
 	lenAllocFree := len(scene.entities.allocator.free)
 	if lenAllocEntities != lenAllocFree || uint(lenAllocEntities) != maxEntities {
 		t.Errorf("number of allocator entities was not equal to number of free indices, was no equal to %d", maxEntities)
-	}
-	lenCompMat := len(scene.entities.matrix)
-	if uint(lenCompMat) != maxEntities {
-		t.Errorf("expected len comp matrix to be %d", maxEntities)
 	}
 }
 
@@ -96,16 +64,12 @@ func TestScene_NewEntity_WhenEntitiesCapacityReached_ShouldAppend(t *testing.T) 
 	// Assert
 	nEnts := maxEntities + 1
 	lenEnts := scene.entities.nEntities
-	lenMat := len(scene.entities.matrix)
 	lenAllocEnts := len(scene.entities.allocator.entities)
 	lenAllocFree := len(scene.entities.allocator.free)
 	lenRenderComps := len(scene.components.renderComps)
 
 	if lenEnts != nEnts {
 		t.Errorf("expected n entities to be %d", nEnts)
-	}
-	if uint(lenMat) != nEnts {
-		t.Errorf("expected n entities in component matrix to be %d", nEnts)
 	}
 	if uint(lenAllocEnts) != nEnts {
 		t.Errorf("expected n allocated entities to be %d", nEnts)
@@ -134,16 +98,12 @@ func TestScene_NewEntity_WhenEntitiesCapacityReachedThenDeallocate_NumberOfEntit
 	// Assert
 	expEnts := maxEntities + 1
 	lenEnts := scene.entities.nEntities
-	lenMat := len(scene.entities.matrix)
 	lenAllocEnts := len(scene.entities.allocator.entities)
 	lenAllocFree := len(scene.entities.allocator.free)
 	lenRenderComps := len(scene.components.renderComps)
 
 	if lenEnts != expEnts {
 		t.Errorf("expected n entities to be %d, was %d", expEnts, lenEnts)
-	}
-	if uint(lenMat) != expEnts {
-		t.Errorf("expected n entities in component matrix to be %d, was %d", expEnts, lenMat)
 	}
 	if uint(lenAllocEnts) != expEnts {
 		t.Errorf("expected n allocated entities to be %d, was %d", expEnts, lenAllocEnts)
@@ -219,3 +179,4 @@ func TestEntityIDAllocator_Free_ShouldIncreaseVersionAndMoveToFree(t *testing.T)
 		t.Errorf("expected entity %v to be inactive, was %v", entity, alloc.entities[entity.index])
 	}
 }
+
