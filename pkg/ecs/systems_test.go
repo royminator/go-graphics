@@ -58,7 +58,6 @@ func TestScene_NewEntity_WhenEntitiesCapacityReached_ShouldAppend(t *testing.T) 
 	for i := 0; i < int(maxEntities); i++ {
 		scene.NewEntity()
 	}
-
 	scene.NewEntity()
 
 	// Assert
@@ -179,4 +178,3 @@ func TestEntityIDAllocator_Free_ShouldIncreaseVersionAndMoveToFree(t *testing.T)
 		t.Errorf("expected entity %v to be inactive, was %v", entity, alloc.entities[entity.index])
 	}
 }
-

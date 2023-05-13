@@ -21,6 +21,11 @@ type (
 		components []ComponentID
 	}
 
+	ArchetypeStatus struct {
+		id       ArchetypeID
+		isActive bool
+	}
+
 	ArchetypeID     uint32
 	ComponentID     uint32
 	ArchetypeMatrix [][]uint32
@@ -28,6 +33,7 @@ type (
 	Scene struct {
 		entities   EntityComponents
 		components ComponentRepo
+		archetypes []Archetype
 	}
 
 	ComponentRepo struct {
@@ -41,7 +47,7 @@ type (
 	EntityComponents struct {
 		nEntities    uint
 		nComponents  uint
-		archEntities [][]uint32
+		archEntities []ArchetypeStatus
 		allocator    EntityIDallocator
 	}
 
@@ -117,7 +123,13 @@ func (sys MovementSystem) archetypeID() ArchetypeID {
 }
 
 func (scene *Scene) filterEntities(arch ArchetypeID) []uint32 {
-	return scene.entities.archEntities[arch]
+	var entities []uint32
+	for i, archetype := range scene.entities.archEntities {
+		if archetype.id == arch && archetype.isActive {
+			entities = append(entities, uint32(i))
+		}
+	}
+	return entities
 }
 
 func NewScene(nEntities uint) *Scene {
@@ -131,7 +143,7 @@ func newEntities(nEntities uint) EntityComponents {
 	return EntityComponents{
 		nEntities:    nEntities,
 		nComponents:  MAX_COMPONENTS,
-		archEntities: make([][]uint32, MAX_ARCHETYPES),
+		archEntities: make([]ArchetypeStatus, nEntities),
 		allocator:    newEntityAllocator(nEntities),
 	}
 }
@@ -176,6 +188,7 @@ func (scene *Scene) appendEntity() EntityID {
 	alloc := &entities.allocator
 	entities.nEntities++
 	scene.components.append()
+	entities.archEntities = append(entities.archEntities, ArchetypeStatus{0, false})
 	return alloc.append()
 }
 
@@ -254,10 +267,41 @@ func (scene *Scene) AddTfComp(entity EntityID, comp TransformComponent) {
 	scene.components.tfComps[entity.index] = comp
 }
 
-func makeArchetype(alloc *IDallocator, comps []ComponentID) Archetype {
+func (scene *Scene) newArchetype(alloc *IDallocator, comps []ComponentID) Archetype {
 	sort.Slice(comps, func(i, j int) bool { return comps[i] < comps[j] })
+
+	archetype, exists := scene.archetypeIDFromComponents(comps)
+	if !exists {
+		archetype = ArchetypeID(alloc.allocate())
+	}
+
 	return Archetype{
-		id:         ArchetypeID(alloc.allocate()),
+		id:         archetype,
 		components: comps,
 	}
+}
+
+func (scene *Scene) archetypeIDFromComponents(comps []ComponentID) (ArchetypeID, bool) {
+	for _, arch := range scene.archetypes {
+		if arch.hasComponents(comps) {
+			return arch.id, true
+		}
+	}
+	return 0, false
+}
+
+func (arch *Archetype) hasComponents(comps []ComponentID) bool {
+	return sliceEquals(arch.components, comps)
+}
+
+func sliceEquals[T comparable](s1, s2 []T) bool {
+	if len(s1) != len(s2) {
+		return false
+	}
+	for i := range s1 {
+		if s1[i] != s2[i] {
+			return false
+		}
+	}
+	return true
 }
