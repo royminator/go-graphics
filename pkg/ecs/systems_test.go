@@ -131,6 +131,30 @@ func TestScene_AddComponent(t *testing.T) {
 	}
 }
 
+func TestScene_AddComponent_ShouldAddArchetypeToEntity(t *testing.T) {
+	// Arrange
+	comp := TransformComponent{mgl.Vec3{1, 2, 3}, mgl.QuatIdent()}
+	scene := NewScene(200)
+	entity := scene.NewEntity()
+
+	// Act
+	scene.AddTfComp(entity, comp)
+
+	// Assert
+	actual := scene.archetypes.archetypes[entity.index]
+	expected := Archetype{0, []ComponentID{TF_COMPID}}
+	status := scene.archetypes.archEntities[entity.index]
+	if actual.id != expected.id {
+		t.Errorf("expected archetype.id to be %d, was %d", expected.id, actual.id)
+	}
+	if status.id != expected.id {
+		t.Errorf("expected status id to be %d, was %d", expected.id, status.id)
+	}
+	if !status.isActive {
+		t.Errorf("expected archetype status to be 'true', was %t", status.isActive)
+	}
+}
+
 func TestContains(t *testing.T) {
 	entities := []uint32{42, 2, 8}
 	if !contains(entities, 42) {

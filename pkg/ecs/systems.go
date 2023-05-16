@@ -26,6 +26,12 @@ type (
 		isActive bool
 	}
 
+	ArchetypeRepo struct {
+		alloc        IDallocator
+		archEntities []ArchetypeStatus
+		archetypes   []Archetype
+	}
+
 	ArchetypeID     uint32
 	ComponentID     uint32
 	ArchetypeMatrix [][]uint32
@@ -33,7 +39,7 @@ type (
 	Scene struct {
 		entities   EntityComponents
 		components ComponentRepo
-		archetypes []Archetype
+		archetypes ArchetypeRepo
 	}
 
 	ComponentRepo struct {
@@ -45,10 +51,9 @@ type (
 	}
 
 	EntityComponents struct {
-		nEntities    uint
-		nComponents  uint
-		archEntities []ArchetypeStatus
-		allocator    EntityIDallocator
+		nEntities   uint
+		nComponents uint
+		allocator   EntityIDallocator
 	}
 
 	IDallocator struct {
@@ -124,7 +129,7 @@ func (sys MovementSystem) archetypeID() ArchetypeID {
 
 func (scene *Scene) filterEntities(arch ArchetypeID) []uint32 {
 	var entities []uint32
-	for i, archetype := range scene.entities.archEntities {
+	for i, archetype := range scene.archetypes.archEntities {
 		if archetype.id == arch && archetype.isActive {
 			entities = append(entities, uint32(i))
 		}
@@ -136,15 +141,23 @@ func NewScene(nEntities uint) *Scene {
 	return &Scene{
 		entities:   newEntities(nEntities),
 		components: newComponents(nEntities),
+		archetypes: newArchetypeRepo(nEntities),
+	}
+}
+
+func newArchetypeRepo(n uint) ArchetypeRepo {
+	return ArchetypeRepo{
+		alloc:        newIDallocator(n),
+		archEntities: make([]ArchetypeStatus, n),
+		archetypes:   make([]Archetype, n),
 	}
 }
 
 func newEntities(nEntities uint) EntityComponents {
 	return EntityComponents{
-		nEntities:    nEntities,
-		nComponents:  MAX_COMPONENTS,
-		archEntities: make([]ArchetypeStatus, nEntities),
-		allocator:    newEntityAllocator(nEntities),
+		nEntities:   nEntities,
+		nComponents: MAX_COMPONENTS,
+		allocator:   newEntityAllocator(nEntities),
 	}
 }
 
@@ -188,7 +201,7 @@ func (scene *Scene) appendEntity() EntityID {
 	alloc := &entities.allocator
 	entities.nEntities++
 	scene.components.append()
-	entities.archEntities = append(entities.archEntities, ArchetypeStatus{0, false})
+	scene.archetypes.append()
 	return alloc.append()
 }
 
@@ -264,15 +277,27 @@ func (comps *ComponentRepo) append() {
 }
 
 func (scene *Scene) AddTfComp(entity EntityID, comp TransformComponent) {
+	if int(entity.index) >= len(scene.components.tfComps) {
+		panic("error: couldn't add TF comp. Entity index out of bounds of component storage")
+	}
 	scene.components.tfComps[entity.index] = comp
+	scene.archetypes.addComponent(entity.index, TF_COMPID)
 }
 
-func (scene *Scene) newArchetype(alloc *IDallocator, comps []ComponentID) Archetype {
+func (repo *ArchetypeRepo) addComponent(entity uint32, comp ComponentID) {
+	comps := repo.archetypes[entity].components
+	comps = append(comps, comp)
+	archetypeID := repo.getArchetype(comps).id
+	repo.archEntities[entity].id = archetypeID
+	repo.archEntities[entity].isActive = true
+}
+
+func (repo *ArchetypeRepo) getArchetype(comps []ComponentID) Archetype {
 	sort.Slice(comps, func(i, j int) bool { return comps[i] < comps[j] })
 
-	archetype, exists := scene.archetypeIDFromComponents(comps)
+	archetype, exists := repo.archetypeIDFromComponents(comps)
 	if !exists {
-		archetype = ArchetypeID(alloc.allocate())
+		archetype = ArchetypeID(repo.alloc.allocate())
 	}
 
 	return Archetype{
@@ -281,8 +306,8 @@ func (scene *Scene) newArchetype(alloc *IDallocator, comps []ComponentID) Archet
 	}
 }
 
-func (scene *Scene) archetypeIDFromComponents(comps []ComponentID) (ArchetypeID, bool) {
-	for _, arch := range scene.archetypes {
+func (repo *ArchetypeRepo) archetypeIDFromComponents(comps []ComponentID) (ArchetypeID, bool) {
+	for _, arch := range repo.archetypes {
 		if arch.hasComponents(comps) {
 			return arch.id, true
 		}
@@ -304,4 +329,8 @@ func sliceEquals[T comparable](s1, s2 []T) bool {
 		}
 	}
 	return true
+}
+
+func (repo *ArchetypeRepo) append() {
+	repo.archEntities = append(repo.archEntities, ArchetypeStatus{0, false})
 }
