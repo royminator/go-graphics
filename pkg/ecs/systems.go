@@ -1,8 +1,9 @@
 package ecs
 
 import (
-	mgl "github.com/go-gl/mathgl/mgl32"
 	"sort"
+
+	mgl "github.com/go-gl/mathgl/mgl32"
 )
 
 type (
@@ -29,7 +30,7 @@ type (
 	ArchetypeRepo struct {
 		alloc        IDallocator
 		archEntities []ArchetypeStatus
-		archetypes   []Archetype
+		archComps    map[ArchetypeID][]ComponentID
 	}
 
 	ArchetypeID     uint32
@@ -38,7 +39,7 @@ type (
 
 	Scene struct {
 		entities   EntityComponents
-		components ComponentRepo
+		components ComponentStorage
 		archetypes ArchetypeRepo
 	}
 
@@ -49,6 +50,14 @@ type (
 		velComps    []VelocityComponent
 		eventComps  []EventListenerComponent
 	}
+
+    ComponentStorage interface {
+        getComponent(entityID uint32, compID ComponentID) Component
+        expand(n uint)
+    }
+
+    Component interface {
+    }
 
 	EntityComponents struct {
 		nEntities   uint
@@ -66,10 +75,6 @@ type (
 		entities []AllocatorEntry
 	}
 
-	ArchetypeIDallocator struct {
-		IDallocator
-	}
-
 	MeshComponent struct {
 	}
 
@@ -82,6 +87,7 @@ type (
 	}
 
 	VelocityComponent struct {
+		Vel mgl.Vec3
 	}
 
 	EventListenerComponent struct {
@@ -149,7 +155,7 @@ func newArchetypeRepo(n uint) ArchetypeRepo {
 	return ArchetypeRepo{
 		alloc:        newIDallocator(n),
 		archEntities: make([]ArchetypeStatus, n),
-		archetypes:   make([]Archetype, n),
+		archComps:    make(map[ArchetypeID][]ComponentID),
 	}
 }
 
@@ -284,11 +290,33 @@ func (scene *Scene) AddTfComp(entity EntityID, comp TransformComponent) {
 	scene.archetypes.addComponent(entity.index, TF_COMPID)
 }
 
+func (scene *Scene) AddVelComp(entity EntityID, comp VelocityComponent) {
+	if int(entity.index) >= len(scene.components.velComps) {
+		panic("error: couldn't add Vel comp. Entity index out of bounds of component storage")
+	}
+	scene.components.velComps[entity.index] = comp
+	scene.archetypes.addComponent(entity.index, VELOCITY_COMPID)
+}
+
+func AddComponent[T component](scene *Scene, entity EntityID, compID ComponentID, comp T) {
+	comps := getComponents[T](&scene.components, compID)
+	comps.addComponent(entity, comp)
+	scene.archetypes.addComponent(entity.index, compID)
+}
+
+func getComponents[T component](repo *ComponentRepo, compID ComponentID) *ComponentCollection[T] {
+	switch compID {
+	case TF_COMPID:
+		return &repo.tf2Comps
+	}
+}
+
 func (repo *ArchetypeRepo) addComponent(entity uint32, comp ComponentID) {
-	comps := repo.archetypes[entity].components
+	currArchetype := repo.archEntities[entity]
+	comps := repo.archComps[currArchetype.id]
 	comps = append(comps, comp)
-	archetypeID := repo.getArchetype(comps).id
-	repo.archEntities[entity].id = archetypeID
+	newArchetypeID := repo.getArchetype(comps).id
+	repo.archEntities[entity].id = newArchetypeID
 	repo.archEntities[entity].isActive = true
 }
 
@@ -307,16 +335,12 @@ func (repo *ArchetypeRepo) getArchetype(comps []ComponentID) Archetype {
 }
 
 func (repo *ArchetypeRepo) archetypeIDFromComponents(comps []ComponentID) (ArchetypeID, bool) {
-	for _, arch := range repo.archetypes {
-		if arch.hasComponents(comps) {
-			return arch.id, true
+	for k, v := range repo.archComps {
+		if sliceEquals(comps, v) {
+			return k, true
 		}
 	}
 	return 0, false
-}
-
-func (arch *Archetype) hasComponents(comps []ComponentID) bool {
-	return sliceEquals(arch.components, comps)
 }
 
 func sliceEquals[T comparable](s1, s2 []T) bool {

@@ -155,6 +155,24 @@ func TestScene_AddComponent_ShouldAddArchetypeToEntity(t *testing.T) {
 	}
 }
 
+func TestScene_AddComponent_WhenAddingMultipleComponents_ShouldUpdateArchetype(t *testing.T) {
+	comp1 := TransformComponent{mgl.Vec3{1, 2, 3}, mgl.QuatIdent()}
+	comp2 := VelocityComponent{}
+	scene := NewScene(200)
+	entity := scene.NewEntity()
+
+	// Act
+	scene.AddTfComp(entity, comp1)
+    arch1 := scene.archetypes.archetypes[entity.index]
+	scene.AddVelComp(entity, comp2)
+    arch2 := scene.archetypes.archetypes[entity.index]
+
+	// Assert
+    if arch1.id == arch2.id {
+        t.Errorf("expected archetype IDs to be different, were same %d", arch1.id)
+    }
+}
+
 func TestContains(t *testing.T) {
 	entities := []uint32{42, 2, 8}
 	if !contains(entities, 42) {
