@@ -141,7 +141,7 @@ func TestScene_AddComponent_ShouldAddArchetypeToEntity(t *testing.T) {
 	scene.AddTfComp(entity, comp)
 
 	// Assert
-	actual := scene.archetypes.archetypes[entity.index]
+	actual := scene.archetypes.archEntities[entity.index]
 	expected := Archetype{0, []ComponentID{TF_COMPID}}
 	status := scene.archetypes.archEntities[entity.index]
 	if actual.id != expected.id {
@@ -163,14 +163,14 @@ func TestScene_AddComponent_WhenAddingMultipleComponents_ShouldUpdateArchetype(t
 
 	// Act
 	scene.AddTfComp(entity, comp1)
-    arch1 := scene.archetypes.archetypes[entity.index]
+	arch1 := scene.archetypes.archEntities[entity.index]
 	scene.AddVelComp(entity, comp2)
-    arch2 := scene.archetypes.archetypes[entity.index]
+	arch2 := scene.archetypes.archEntities[entity.index]
 
 	// Assert
-    if arch1.id == arch2.id {
-        t.Errorf("expected archetype IDs to be different, were same %d", arch1.id)
-    }
+	if arch1.id == arch2.id {
+		t.Errorf("expected archetype IDs to be different, were same %d", arch1.id)
+	}
 }
 
 func TestContains(t *testing.T) {

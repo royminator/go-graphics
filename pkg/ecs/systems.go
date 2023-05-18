@@ -39,7 +39,7 @@ type (
 
 	Scene struct {
 		entities   EntityComponents
-		components ComponentStorage
+		components ComponentRepo
 		archetypes ArchetypeRepo
 	}
 
@@ -51,13 +51,8 @@ type (
 		eventComps  []EventListenerComponent
 	}
 
-    ComponentStorage interface {
-        getComponent(entityID uint32, compID ComponentID) Component
-        expand(n uint)
-    }
-
-    Component interface {
-    }
+	Component interface {
+	}
 
 	EntityComponents struct {
 		nEntities   uint
@@ -283,32 +278,21 @@ func (comps *ComponentRepo) append() {
 }
 
 func (scene *Scene) AddTfComp(entity EntityID, comp TransformComponent) {
-	if int(entity.index) >= len(scene.components.tfComps) {
-		panic("error: couldn't add TF comp. Entity index out of bounds of component storage")
-	}
-	scene.components.tfComps[entity.index] = comp
-	scene.archetypes.addComponent(entity.index, TF_COMPID)
+	comps := scene.components.tfComps
+	validateAndAddComponent(scene, comps, entity.index, comp, TF_COMPID)
 }
 
 func (scene *Scene) AddVelComp(entity EntityID, comp VelocityComponent) {
-	if int(entity.index) >= len(scene.components.velComps) {
-		panic("error: couldn't add Vel comp. Entity index out of bounds of component storage")
-	}
-	scene.components.velComps[entity.index] = comp
-	scene.archetypes.addComponent(entity.index, VELOCITY_COMPID)
+    comps := scene.components.velComps
+    validateAndAddComponent(scene, comps, entity.index, comp, VELOCITY_COMPID)
 }
 
-func AddComponent[T component](scene *Scene, entity EntityID, compID ComponentID, comp T) {
-	comps := getComponents[T](&scene.components, compID)
-	comps.addComponent(entity, comp)
-	scene.archetypes.addComponent(entity.index, compID)
-}
-
-func getComponents[T component](repo *ComponentRepo, compID ComponentID) *ComponentCollection[T] {
-	switch compID {
-	case TF_COMPID:
-		return &repo.tf2Comps
+func validateAndAddComponent[T any](s *Scene, comps []T, entity uint32, comp T, compID ComponentID) {
+	if int(entity) >= len(comps) {
+		panic("error: couldn't add component. Entity index out of bounds of component storage")
 	}
+	comps[entity] = comp
+	s.archetypes.addComponent(entity, compID)
 }
 
 func (repo *ArchetypeRepo) addComponent(entity uint32, comp ComponentID) {
