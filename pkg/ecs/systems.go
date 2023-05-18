@@ -33,8 +33,8 @@ type (
 		archComps    map[ArchetypeID][]ComponentID
 	}
 
-	ArchetypeID     uint32
-	ComponentID     uint32
+	ArchetypeID uint32
+	ComponentID uint32
 
 	Scene struct {
 		entities   EntityComponents
@@ -279,8 +279,8 @@ func (scene *Scene) AddTfComp(entity EntityID, comp TransformComponent) {
 }
 
 func (scene *Scene) AddVelComp(entity EntityID, comp VelocityComponent) {
-    comps := scene.components.velComps
-    validateAndAddComponent(scene, comps, entity.index, comp, VELOCITY_COMPID)
+	comps := scene.components.velComps
+	validateAndAddComponent(scene, comps, entity.index, comp, VELOCITY_COMPID)
 }
 
 func validateAndAddComponent[T any](s *Scene, comps []T, entity uint32, comp T, compID ComponentID) {
