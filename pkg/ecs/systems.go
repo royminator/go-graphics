@@ -35,7 +35,6 @@ type (
 
 	ArchetypeID     uint32
 	ComponentID     uint32
-	ArchetypeMatrix [][]uint32
 
 	Scene struct {
 		entities   EntityComponents
@@ -49,9 +48,6 @@ type (
 		tfComps     []TransformComponent
 		velComps    []VelocityComponent
 		eventComps  []EventListenerComponent
-	}
-
-	Component interface {
 	}
 
 	EntityComponents struct {
