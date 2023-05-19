@@ -2,6 +2,7 @@ package ecs
 
 import (
 	mgl "github.com/go-gl/mathgl/mgl32"
+	"go-graphics/pkg/util"
 	"testing"
 )
 
@@ -175,10 +176,10 @@ func TestScene_AddComponent_WhenAddingMultipleComponents_ShouldUpdateArchetype(t
 
 func TestContains(t *testing.T) {
 	entities := []uint32{42, 2, 8}
-	if !contains(entities, 42) {
+	if !util.Contains(entities, 42) {
 		t.Errorf("expected 42 to be in %v", entities)
 	}
-	if contains(entities, 82) {
+	if util.Contains(entities, 82) {
 		t.Errorf("Did not expect to find 82 in %v", entities)
 	}
 }

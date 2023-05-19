@@ -1,9 +1,9 @@
 package ecs
 
 import (
-	"sort"
-
 	mgl "github.com/go-gl/mathgl/mgl32"
+	"go-graphics/pkg/util"
+	"sort"
 )
 
 type (
@@ -257,15 +257,6 @@ func (alloc *EntityIDallocator) isActive(entity EntityID) bool {
 		alloc.entities[entity.index].isActive
 }
 
-func contains[T comparable](xs []T, x T) bool {
-	for _, val := range xs {
-		if val == x {
-			return true
-		}
-	}
-	return false
-}
-
 func (comps *ComponentRepo) append() {
 	comps.meshComps = append(comps.meshComps, MeshComponent{})
 	comps.tfComps = append(comps.tfComps, TransformComponent{})
@@ -316,23 +307,11 @@ func (repo *ArchetypeRepo) getArchetype(comps []ComponentID) Archetype {
 
 func (repo *ArchetypeRepo) archetypeIDFromComponents(comps []ComponentID) (ArchetypeID, bool) {
 	for k, v := range repo.archComps {
-		if sliceEquals(comps, v) {
+		if util.SliceEquals(comps, v) {
 			return k, true
 		}
 	}
 	return 0, false
-}
-
-func sliceEquals[T comparable](s1, s2 []T) bool {
-	if len(s1) != len(s2) {
-		return false
-	}
-	for i := range s1 {
-		if s1[i] != s2[i] {
-			return false
-		}
-	}
-	return true
 }
 
 func (repo *ArchetypeRepo) append() {
