@@ -1,6 +1,8 @@
 package input
 
 import (
+	"go-graphics/pkg/util"
+
 	"github.com/veandco/go-sdl2/sdl"
 )
 
@@ -132,20 +134,11 @@ func (ctx InputContext) mapToDomainInputs(state InputState) []Action {
 
 func isActionTriggered(btns, triggered []ButtonState) bool {
 	for _, btn := range btns {
-		if !containsBtn(btn, triggered) {
+		if !util.Contains(triggered, btn) {
 			return false
 		}
 	}
 	return true
-}
-
-func containsBtn(btn ButtonState, btns []ButtonState) bool {
-	for _, b := range btns {
-		if b == btn {
-			return true
-		}
-	}
-	return false
 }
 
 func (m InputMapper) execInputs(actions []Action) {
