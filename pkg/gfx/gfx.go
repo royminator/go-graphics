@@ -8,7 +8,7 @@ func CreateVertexBufferG(vdata VertexData) uint32 {
 	var buf uint32
 	gl.GenBuffers(1, &buf)
 	gl.BindBuffer(gl.ARRAY_BUFFER, buf)
-	gl.BufferData(gl.ARRAY_BUFFER, vdata.NBytes, gl.Ptr(vdata.Data), gl.STATIC_DRAW)
+	gl.BufferData(gl.ARRAY_BUFFER, vdata.NumBytes, gl.Ptr(vdata.Data), gl.STATIC_DRAW)
 
 	return buf
 }

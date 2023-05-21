@@ -1,14 +1,17 @@
 package ecs
 
 import (
-	mgl "github.com/go-gl/mathgl/mgl32"
 	"go-graphics/pkg/util"
 	"sort"
 )
 
 type (
-	EntityID struct {
-		index   uint32
+	EntityID    uint32
+	ArchetypeID uint32
+	ComponentID uint32
+
+	Entity struct {
+		index   EntityID
 		version uint32
 	}
 
@@ -33,9 +36,6 @@ type (
 		archComps    map[ArchetypeID][]ComponentID
 	}
 
-	ArchetypeID uint32
-	ComponentID uint32
-
 	Scene struct {
 		entities   EntityComponents
 		components ComponentRepo
@@ -46,8 +46,6 @@ type (
 		meshComps   []MeshComponent
 		renderComps []RenderComponent
 		tfComps     []TransformComponent
-		velComps    []VelocityComponent
-		eventComps  []EventListenerComponent
 	}
 
 	EntityComponents struct {
@@ -66,24 +64,6 @@ type (
 		entities []AllocatorEntry
 	}
 
-	MeshComponent struct {
-	}
-
-	RenderComponent struct {
-	}
-
-	TransformComponent struct {
-		Pos mgl.Vec3
-		Rot mgl.Quat
-	}
-
-	VelocityComponent struct {
-		Vel mgl.Vec3
-	}
-
-	EventListenerComponent struct {
-	}
-
 	System interface {
 		update(dt float32, entities []uint32, compRepo *ComponentRepo)
 		archetypeID() ArchetypeID
@@ -97,12 +77,6 @@ type (
 const (
 	MAX_COMPONENTS uint = 32
 	MAX_ARCHETYPES uint = 300
-
-	TF_COMPID ComponentID = iota + 1
-	VELOCITY_COMPID
-	RENDER_COMPID
-	MESH_COMPID
-	EVENTLISTENER_COMPID
 )
 
 var (
@@ -163,7 +137,6 @@ func newComponents(nEnts uint) ComponentRepo {
 		meshComps:   make([]MeshComponent, nEnts),
 		renderComps: make([]RenderComponent, nEnts),
 		tfComps:     make([]TransformComponent, nEnts),
-		velComps:    make([]VelocityComponent, nEnts),
 	}
 }
 
@@ -186,14 +159,14 @@ func newIDallocator(n uint) IDallocator {
 	return alloc
 }
 
-func (scene *Scene) NewEntity() EntityID {
+func (scene *Scene) NewEntity() Entity {
 	if scene.numFreeEntities() <= 0 {
 		return scene.appendEntity()
 	}
 	return scene.entities.allocator.allocate()
 }
 
-func (scene *Scene) appendEntity() EntityID {
+func (scene *Scene) appendEntity() Entity {
 	entities := &scene.entities
 	alloc := &entities.allocator
 	entities.nEntities++
@@ -206,18 +179,18 @@ func (scene *Scene) numFreeEntities() uint {
 	return uint(len(scene.entities.allocator.free))
 }
 
-func (scene *Scene) DeleteEntity(entity EntityID) {
+func (scene *Scene) DeleteEntity(entity Entity) {
 	entities := &scene.entities
 	alloc := &entities.allocator
 	alloc.deallocate(entity)
 }
 
-func (alloc *EntityIDallocator) allocate() EntityID {
+func (alloc *EntityIDallocator) allocate() Entity {
 	entityIndex := alloc.IDallocator.allocate()
 	alloc.entities[entityIndex].version++
 	alloc.entities[entityIndex].isActive = true
-	return EntityID{
-		index:   entityIndex,
+	return Entity{
+		index:   EntityID(entityIndex),
 		version: alloc.entities[entityIndex].version,
 	}
 }
@@ -232,27 +205,27 @@ func (alloc *IDallocator) deallocate(id uint32) {
 	alloc.free = append(alloc.free, id)
 }
 
-func (alloc *EntityIDallocator) append() EntityID {
+func (alloc *EntityIDallocator) append() Entity {
 	entry := AllocatorEntry{
 		isActive: true,
 		version:  0,
 	}
 	alloc.entities = append(alloc.entities, entry)
-	return EntityID{
-		index:   uint32(len(alloc.entities) - 1),
+	return Entity{
+		index:   EntityID(len(alloc.entities) - 1),
 		version: 0,
 	}
 }
 
-func (alloc *EntityIDallocator) deallocate(entity EntityID) {
+func (alloc *EntityIDallocator) deallocate(entity Entity) {
 	if alloc.isActive(entity) {
 		alloc.entities[entity.index].isActive = false
-		alloc.IDallocator.deallocate(entity.index)
+		alloc.IDallocator.deallocate(uint32(entity.index))
 	}
 }
 
-func (alloc *EntityIDallocator) isActive(entity EntityID) bool {
-	return entity.index < uint32(len(alloc.entities)) &&
+func (alloc *EntityIDallocator) isActive(entity Entity) bool {
+	return int(entity.index) < len(alloc.entities) &&
 		alloc.entities[entity.index].version == entity.version &&
 		alloc.entities[entity.index].isActive
 }
@@ -261,20 +234,19 @@ func (comps *ComponentRepo) append() {
 	comps.meshComps = append(comps.meshComps, MeshComponent{})
 	comps.tfComps = append(comps.tfComps, TransformComponent{})
 	comps.renderComps = append(comps.renderComps, RenderComponent{})
-	comps.velComps = append(comps.velComps, VelocityComponent{})
 }
 
-func (scene *Scene) AddTfComp(entity EntityID, comp TransformComponent) {
+func (scene *Scene) AddTfComp(entity Entity, comp TransformComponent) {
 	comps := scene.components.tfComps
 	validateAndAddComponent(scene, comps, entity.index, comp, TF_COMPID)
 }
 
-func (scene *Scene) AddVelComp(entity EntityID, comp VelocityComponent) {
-	comps := scene.components.velComps
-	validateAndAddComponent(scene, comps, entity.index, comp, VELOCITY_COMPID)
+func (scene *Scene) AddMeshComp(entity Entity, comp MeshComponent) {
+	comps := scene.components.meshComps
+	validateAndAddComponent(scene, comps, entity.index, comp, TF_COMPID)
 }
 
-func validateAndAddComponent[T any](s *Scene, comps []T, entity uint32, comp T, compID ComponentID) {
+func validateAndAddComponent[T any](s *Scene, comps []T, entity EntityID, comp T, compID ComponentID) {
 	if int(entity) >= len(comps) {
 		panic("error: couldn't add component. Entity index out of bounds of component storage")
 	}
@@ -282,7 +254,7 @@ func validateAndAddComponent[T any](s *Scene, comps []T, entity uint32, comp T, 
 	s.archetypes.addComponent(entity, compID)
 }
 
-func (repo *ArchetypeRepo) addComponent(entity uint32, comp ComponentID) {
+func (repo *ArchetypeRepo) addComponent(entity EntityID, comp ComponentID) {
 	currArchetype := repo.archEntities[entity]
 	comps := repo.archComps[currArchetype.id]
 	comps = append(comps, comp)

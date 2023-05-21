@@ -44,7 +44,7 @@ func TestScene_NewEntity_ShouldBe0(t *testing.T) {
 	maxEntities := uint(3)
 	scene := NewScene(maxEntities)
 	entity := scene.NewEntity()
-	actual := EntityID{0, 1}
+	actual := Entity{EntityID(0), 1}
 	if entity != actual {
 		t.Errorf("expected allocated entity to be %v, was %v", entity, actual)
 	}
@@ -158,14 +158,14 @@ func TestScene_AddComponent_ShouldAddArchetypeToEntity(t *testing.T) {
 
 func TestScene_AddComponent_WhenAddingMultipleComponents_ShouldUpdateArchetype(t *testing.T) {
 	comp1 := TransformComponent{mgl.Vec3{1, 2, 3}, mgl.QuatIdent()}
-	comp2 := VelocityComponent{}
+	comp2 := MeshComponent{}
 	scene := NewScene(200)
 	entity := scene.NewEntity()
 
 	// Act
 	scene.AddTfComp(entity, comp1)
 	arch1 := scene.archetypes.archEntities[entity.index]
-	scene.AddVelComp(entity, comp2)
+	scene.AddMeshComp(entity, comp2)
 	arch2 := scene.archetypes.archEntities[entity.index]
 
 	// Assert
@@ -187,7 +187,7 @@ func TestContains(t *testing.T) {
 func TestEntityIDAllocator_SingleAllocation_ShouldReturn0(t *testing.T) {
 	alloc := newEntityAllocator(10)
 	actual := alloc.allocate()
-	expected := EntityID{index: 0, version: 1}
+	expected := Entity{index: 0, version: 1}
 	if expected != actual {
 		t.Errorf("expected %v, actual %v", expected, actual)
 	}
@@ -197,7 +197,7 @@ func TestEntityIDAllocator_TwoAllocations_ShouldIncrementIndex(t *testing.T) {
 	alloc := newEntityAllocator(10)
 	alloc.allocate()
 	actual := alloc.allocate()
-	expected := EntityID{index: 1, version: 1}
+	expected := Entity{index: 1, version: 1}
 	if expected != actual {
 		t.Errorf("expected %v, actual %v", expected, actual)
 	}
