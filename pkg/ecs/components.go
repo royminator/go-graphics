@@ -5,6 +5,8 @@ import (
 )
 
 type (
+	ComponentID uint32
+
 	MeshComponent struct {
 	}
 
@@ -15,11 +17,13 @@ type (
 		Pos mgl.Vec3
 		Rot mgl.Quat
 	}
+
+	InputReactorComponent struct {
+	}
 )
 
 const (
 	TF_COMPID ComponentID = iota
-	VEL_COMPID
 	RENDER_COMPID
 	MESH_COMPID
 	EVENTLISTENER_COMPID

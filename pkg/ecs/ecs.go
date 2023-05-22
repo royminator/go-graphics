@@ -8,7 +8,6 @@ import (
 type (
 	EntityID    uint32
 	ArchetypeID uint32
-	ComponentID uint32
 
 	Entity struct {
 		index   EntityID
